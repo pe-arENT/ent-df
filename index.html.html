@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ENT DF Tracker</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg: #f0f4f8; --card: #fff; --primary: #1a6b3a; --primary-light: #e8f5ee;
+  --primary-mid: #2d8a52; --accent: #e8a020; --text: #1a2332; --text-muted: #6b7a8d;
+  --border: #dde3ea; --red: #c0392b; --radius: 12px; --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --opd: #1a4a7a; --ipd: #5a2d82; --proc: #1a6b3a; --or: #8b3a1a; --consult: #c0392b;
+}
+body { font-family: 'Sarabun',-apple-system,BlinkMacSystemFont,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding-bottom:110px; }
+
+/* HEADER */
+.header { background:var(--primary); color:#fff; padding:14px 16px 10px; position:sticky; top:0; z-index:200; box-shadow:0 2px 8px rgba(0,0,0,0.2); }
+.header-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.header-title { font-size:17px; font-weight:700; }
+.header-sub { font-size:11px; opacity:0.8; }
+.month-nav { display:flex; align-items:center; gap:6px; }
+.month-nav button { background:rgba(255,255,255,0.2); border:none; color:#fff; width:30px; height:30px; border-radius:8px; font-size:15px; cursor:pointer; }
+.month-label { font-size:14px; font-weight:600; min-width:110px; text-align:center; }
+
+/* DATE STRIP */
+.date-strip-wrap { background:var(--primary-mid); padding:8px 12px 0; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.date-strip-wrap::-webkit-scrollbar { display:none; }
+.date-strip { display:flex; gap:5px; padding-bottom:8px; min-width:max-content; }
+.date-btn { display:flex; flex-direction:column; align-items:center; background:rgba(255,255,255,0.15); border:2px solid transparent; color:#fff; border-radius:10px; width:42px; padding:5px 3px; cursor:pointer; position:relative; }
+.date-btn .dn { font-size:16px; font-weight:700; line-height:1.2; }
+.date-btn .dd { font-size:10px; opacity:0.8; }
+.date-btn.active { background:#fff; color:var(--primary); }
+.date-btn.has-data::after { content:''; position:absolute; bottom:3px; width:5px; height:5px; background:var(--accent); border-radius:50%; }
+.date-btn.today-mark { border-color:var(--accent); }
+.date-btn.weekend .dn { color:#ffcdd2; }
+.date-btn.active.weekend .dn { color:#c0392b; }
+
+/* SUMMARY BAR */
+.summary-bar { background:var(--card); padding:10px 12px; display:flex; gap:8px; border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:none; }
+.summary-bar::-webkit-scrollbar { display:none; }
+.sum-item { display:flex; flex-direction:column; align-items:center; min-width:68px; background:var(--bg); border-radius:10px; padding:7px 8px; }
+.sum-item.hl { background:var(--primary-light); }
+.sum-val { font-size:17px; font-weight:800; color:var(--primary); }
+.sum-val.gold { color:var(--accent); }
+.sum-lbl { font-size:10px; color:var(--text-muted); margin-top:1px; text-align:center; white-space:nowrap; }
+
+/* VIEW TABS */
+.view-tabs { display:flex; margin:10px 12px 0; background:var(--border); border-radius:10px; padding:3px; gap:2px; }
+.view-tabs button { flex:1; padding:7px 4px; border:none; background:transparent; border-radius:8px; font-size:12px; font-weight:600; color:var(--text-muted); cursor:pointer; transition:all 0.15s; }
+.view-tabs button.active { background:var(--card); color:var(--primary); box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+
+/* ENTRY VIEW */
+.entry-view { padding:10px 12px; }
+
+/* SECTION CARD */
+.section-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:10px; overflow:hidden; }
+.section-header { padding:11px 14px; display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
+.sec-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.sec-name { font-size:14px; font-weight:700; flex:1; }
+.sec-total { font-size:12px; font-weight:600; color:var(--text-muted); }
+.sec-chev { font-size:11px; color:var(--text-muted); transition:transform 0.2s; }
+.section-card.collapsed .sec-chev { transform:rotate(-90deg); }
+.section-card.collapsed .section-body { display:none; }
+.section-body { border-top:1px solid var(--border); }
+
+/* OPD SUB-TYPE */
+.opd-type-header { padding:8px 14px 6px; background:#f7f9fc; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--border); }
+.opd-type-badge { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
+.opd-type-price { font-size:11px; color:var(--text-muted); margin-left:auto; }
+
+/* ITEM ROW */
+.item-row { display:flex; align-items:center; padding:9px 14px; gap:8px; border-bottom:1px solid var(--bg); }
+.item-row:last-child { border-bottom:none; }
+.item-info { flex:1; min-width:0; }
+.item-name { font-size:13px; font-weight:600; }
+.item-price-lbl { font-size:11px; color:var(--text-muted); margin-top:1px; }
+.item-sub { font-size:12px; color:var(--primary); font-weight:700; min-width:46px; text-align:right; }
+
+/* OR ITEM */
+.or-item { padding:10px 14px; border-bottom:1px solid var(--bg); }
+.or-item:last-child { border-bottom:none; }
+.or-item-top { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.or-item-name { font-size:13px; font-weight:600; flex:1; }
+.or-price-row { display:flex; align-items:center; gap:6px; }
+.or-price-lbl { font-size:11px; color:var(--text-muted); }
+.or-price-input { width:80px; border:1px solid var(--border); border-radius:7px; padding:4px 8px; font-size:13px; font-weight:600; color:var(--primary); background:var(--bg); }
+.or-add-row { display:flex; align-items:center; gap:8px; margin-top:4px; }
+.or-add-name { flex:1; border:1px solid var(--border); border-radius:7px; padding:5px 8px; font-size:12px; background:var(--bg); }
+.or-add-btn { background:var(--primary); color:#fff; border:none; border-radius:7px; padding:5px 12px; font-size:12px; cursor:pointer; }
+.or-entries { margin-top:6px; }
+.or-entry { display:flex; align-items:center; gap:6px; padding:5px 8px; background:var(--primary-light); border-radius:8px; margin-bottom:4px; font-size:12px; }
+.or-entry-name { flex:1; font-weight:600; }
+.or-entry-amt { color:var(--primary); font-weight:700; }
+.or-entry-del { background:none; border:none; color:var(--red); font-size:16px; cursor:pointer; padding:0 2px; }
+
+/* COUNTER */
+.counter { display:flex; align-items:center; background:var(--bg); border-radius:10px; overflow:hidden; flex-shrink:0; }
+.cbtn { width:36px; height:36px; border:none; background:transparent; font-size:20px; cursor:pointer; color:var(--primary); display:flex; align-items:center; justify-content:center; }
+.cbtn.minus { color:var(--red); }
+.cbtn:active { background:var(--primary-light); }
+.cval { min-width:28px; text-align:center; font-size:16px; font-weight:700; }
+.cval.nz { color:var(--primary); }
+
+/* IPD HOLIDAY TOGGLE */
+.ipd-day-toggle { display:flex; margin:0 14px 8px; gap:6px; }
+.ipd-toggle-btn { flex:1; padding:6px; border:2px solid var(--border); border-radius:8px; background:#fff; font-size:12px; font-weight:600; color:var(--text-muted); cursor:pointer; text-align:center; }
+.ipd-toggle-btn.active { border-color:var(--primary); color:var(--primary); background:var(--primary-light); }
+
+/* CONSULT SECTION */
+.consult-note-area { padding:10px 14px; }
+.consult-add-row { display:flex; gap:6px; margin-bottom:8px; }
+.consult-input { flex:1; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:13px; background:var(--bg); }
+.consult-add-btn { background:var(--consult); color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+.consult-list { display:flex; flex-direction:column; gap:6px; }
+.consult-item { display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--bg); border-radius:9px; }
+.consult-check { width:20px; height:20px; border-radius:5px; border:2px solid var(--border); cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:14px; }
+.consult-check.done { background:var(--primary); border-color:var(--primary); color:#fff; }
+.consult-text { flex:1; font-size:13px; }
+.consult-text.done { color:var(--text-muted); text-decoration:line-through; }
+.consult-del { background:none; border:none; color:var(--text-muted); font-size:16px; cursor:pointer; }
+.consult-df-row { display:flex; align-items:center; justify-content:space-between; padding:8px 14px 10px; border-top:1px solid var(--border); margin-top:4px; }
+.consult-df-lbl { font-size:12px; color:var(--text-muted); }
+.consult-df-val { font-size:16px; font-weight:800; color:var(--consult); }
+
+/* MONTHLY */
+.monthly-view { padding:10px 12px; }
+.monthly-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.monthly-title { font-size:15px; font-weight:700; }
+.export-btn { background:var(--primary); color:#fff; border:none; border-radius:8px; padding:7px 12px; font-size:12px; font-weight:600; cursor:pointer; }
+.msummary { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.mscard { background:var(--card); border-radius:var(--radius); padding:12px 14px; box-shadow:var(--shadow); }
+.mscard-val { font-size:22px; font-weight:800; }
+.mscard-val.green { color:var(--primary); }
+.mscard-val.gold { color:var(--accent); }
+.mscard-lbl { font-size:11px; color:var(--text-muted); margin-top:2px; }
+.bt { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; margin-bottom:10px; }
+.bt-head { display:grid; grid-template-columns:1fr 52px 76px; padding:9px 12px; background:var(--primary); color:#fff; font-size:11px; font-weight:700; }
+.bt-row { display:grid; grid-template-columns:1fr 52px 76px; padding:8px 12px; border-bottom:1px solid var(--bg); font-size:12px; align-items:center; }
+.bt-row:last-child { border-bottom:none; }
+.bt-sec { background:var(--bg); font-weight:700; font-size:11px; color:var(--text-muted); padding:5px 12px; }
+.bt-cnt { text-align:center; font-weight:600; }
+.bt-amt { text-align:right; font-weight:700; color:var(--primary); }
+.bt-tot { background:var(--primary-light); font-weight:800; color:var(--primary); border-top:2px solid var(--primary); }
+
+/* BOTTOM BAR */
+.bottom-bar { position:fixed; bottom:0; left:0; right:0; background:var(--card); border-top:1px solid var(--border); padding:10px 16px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 -4px 20px rgba(0,0,0,0.1); z-index:150; }
+.bottom-info .bi-date { font-size:11px; color:var(--text-muted); }
+.bottom-info .bi-cases { font-size:13px; font-weight:600; margin-top:1px; }
+.bottom-total-lbl { font-size:11px; color:var(--text-muted); text-align:right; }
+.bottom-total-val { font-size:22px; font-weight:800; color:var(--primary); text-align:right; }
+
+/* TOAST */
+.toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(10px); background:#1a2332; color:#fff; padding:9px 18px; border-radius:20px; font-size:13px; font-weight:600; opacity:0; transition:all 0.25s; z-index:300; pointer-events:none; white-space:nowrap; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* MODAL */
+.modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:400; display:none; align-items:flex-end; }
+.modal-backdrop.open { display:flex; }
+.modal { background:#fff; border-radius:20px 20px 0 0; padding:20px 16px 40px; width:100%; max-height:80vh; overflow-y:auto; }
+.modal-title { font-size:16px; font-weight:700; margin-bottom:14px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">ENT DF Tracker</div>
+      <div class="header-sub">ENT DF Fee Tracker</div>
+    </div>
+    <div class="month-nav">
+      <button onclick="changeMonth(-1)">‹</button>
+      <div class="month-label" id="monthLabel"></div>
+      <button onclick="changeMonth(1)">›</button>
+    </div>
+  </div>
+</div>
+
+<div class="date-strip-wrap">
+  <div class="date-strip" id="dateStrip"></div>
+</div>
+
+<div class="summary-bar" id="summaryBar"></div>
+
+<div class="view-tabs">
+  <button id="tabEntry" class="active" onclick="setView('entry')">📝 บันทึก</button>
+  <button id="tabMonthly" onclick="setView('monthly')">📊 สรุปเดือน</button>
+</div>
+
+<div id="entryView" class="entry-view"></div>
+<div id="monthlyView" class="monthly-view" style="display:none"></div>
+
+<div class="bottom-bar">
+  <div class="bottom-info">
+    <div class="bi-date" id="biDate"></div>
+    <div class="bi-cases" id="biCases"></div>
+  </div>
+  <div>
+    <div class="bottom-total-lbl">รวมวันนี้</div>
+    <div class="bottom-total-val" id="biTotal">฿0</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA STRUCTURE ──────────────────────────────────────────────────────────
+// localStorage keys:
+// ent2_opd   : { "YYYY-MM-DD": { opd_type: { subtype: count } } }
+// ent2_ipd   : { "YYYY-MM-DD": { "holiday": bool, items: { id: count } } }
+// ent2_proc  : { "YYYY-MM-DD": { id: count } }
+// ent2_consult: { "YYYY-MM-DD": [ { id, text, done } ] }
+// ent2_or    : { "YYYY-MM-DD": [ { id, name, price } ] }
+
+const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+  "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+const THAI_DAYS = ["อา","จ","อ","พ","พฤ","ศ","ส"];
+
+const OPD_TYPES = [
+  { key:"opd100", label:"OPD ทั่วไป",   price:100, color:"#1a4a7a", bg:"#e8f0f8", sessions:true  },
+  { key:"opd200", label:"OPD Premium",   price:200, color:"#5a2d82", bg:"#f3eef8", sessions:true  },
+  { key:"opd240", label:"OPD นอกเวลา",  price:240, color:"#8b3a1a", bg:"#f8ede8", sessions:false },
+];
+const OPD_SUBS = [
+  { key:"old_appt",   label:"นัดเดิม" },
+  { key:"consult",    label:"Consult" },
+  { key:"walkin",     label:"Walk in" },
+  { key:"ent_appt",   label:"นัดจาก ENT" },
+  { key:"reschedule", label:"ผิดนัด/ก่อนนัด" },
+];
+const OPD_SESSIONS = [
+  { key:"am", label:"🌤 เช้า" },
+  { key:"pm", label:"🌆 บ่าย" },
+];
+const IPD_WORKDAY = [
+  { id:"round_gen",  name:"Round สามัญ/พิเศษ", price:100 },
+  { id:"round_icu",  name:"Round ICU",           price:200 },
+  { id:"admit",      name:"Admit ใหม่",           price:200 },
+];
+const IPD_HOLIDAY = [
+  { id:"round_hol",  name:"Round (วันหยุด)",     price:200 },
+  { id:"admit_hol",  name:"Admit ใหม่ (วันหยุด)",price:300 },
+];
+const PROC_ITEMS = [
+  { id:"direct_fol",       name:"Direct FOL laryngoscopy",   price:500 },
+  { id:"ear_toilet",       name:"Ear toilet",                price:50  },
+  { id:"nose_toilet",      name:"Nose toilet",               price:50  },
+  { id:"fna_l",            name:"FNA-L",                     price:200 },
+  { id:"aspirate",         name:"Aspirate",                  price:50  },
+  { id:"biopsy_nose",      name:"Biopsy of nose",            price:200 },
+  { id:"biopsy_oral",      name:"Biopsy of oral tissue",     price:200 },
+  { id:"change_trach",     name:"Change tracheostomy tube",  price:100 },
+  { id:"direct_fb",        name:"Direct laryngoscopy + FB",  price:700 },
+  { id:"id",               name:"I&D",                       price:200 },
+  { id:"intra_laryngeal",  name:"Intralaryngeal injection",  price:50  },
+  { id:"intralesional",    name:"Intralesional injection",   price:50  },
+  { id:"intratympanic",    name:"Intratympanic injection",   price:50  },
+  { id:"nasal_endo",       name:"Nasal endoscope",           price:400 },
+  { id:"nasal_tele_bx",    name:"Nasal tele biopsy",         price:500 },
+  { id:"nasal_pack",       name:"Nasal packing, anterior",   price:100 },
+  { id:"needle_bx",        name:"Needle biopsy (ENT)",       price:200 },
+  { id:"remove_fb_throat", name:"Remove FB ลำคอ",            price:50  },
+  { id:"remove_fb_nose",   name:"Remove FB จมูก",             price:50  },
+  { id:"remove_fb_ear",    name:"Remove FB หู",               price:50  },
+  { id:"suture_skin",      name:"Suture skin",               price:200 },
+];
+const OR_PRESETS = [
+  { id:"or_excision",   name:"Excision / Bx (ระบุตำแหน่ง)", price:1000 },
+  { id:"or_rf_nose",    name:"RF nose",                       price:1000 },
+  { id:"or_myrinx1",    name:"Myringotomy (1 ข้าง)",          price:1000 },
+  { id:"or_myrinx2",    name:"Myringotomy (2 ข้าง)",          price:2000 },
+  { id:"or_tonsil",     name:"Tonsillectomy",                 price:2000 },
+  { id:"or_adeno",      name:"Adenoidectomy",                 price:1700 },
+  { id:"or_ta",         name:"T&A",                           price:2200 },
+  { id:"or_thyroid_lob",name:"Thyroid lobectomy",             price:3200 },
+  { id:"or_thyroid_tot",name:"Total thyroidectomy",           price:4700 },
+  { id:"or_trach",      name:"Tracheostomy",                  price:0   },
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let currentView = 'entry';
+let currentDate = new Date();
+let selectedDate = new Date();
+let collapsedSections = { opd:false, proc:false, ipd:false, consult:false, or:false };
+let collapsedOpdTiers = { opd100:false, opd200:true, opd240:true }; // เริ่มพับ premium/นอกเวลาไว้ก่อน
+
+// Storage helpers
+function ls_get(key) { try { return JSON.parse(localStorage.getItem(key)||'{}'); } catch(e){ return {}; } }
+function ls_get_arr(key) { try { return JSON.parse(localStorage.getItem(key)||'[]'); } catch(e){ return []; } }
+function ls_set(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ─── DATA ACCESS ──────────────────────────────────────────────────────────────
+// OPD
+function getOpdData() { return ls_get('ent2_opd'); }
+function getOpdCount(d, typeKey, subKey) {
+  return ((getOpdData()[dateKey(d)]||{})[typeKey]||{})[subKey]||0;
+}
+function setOpdCount(d, typeKey, subKey, val) {
+  const all = getOpdData();
+  const k = dateKey(d);
+  if (!all[k]) all[k] = {};
+  if (!all[k][typeKey]) all[k][typeKey] = {};
+  if (val <= 0) delete all[k][typeKey][subKey];
+  else all[k][typeKey][subKey] = val;
+  if (!Object.keys(all[k][typeKey]).length) delete all[k][typeKey];
+  if (!Object.keys(all[k]).length) delete all[k];
+  ls_set('ent2_opd', all);
+}
+function getOpdDayTotal(d) {
+  const all = getOpdData()[dateKey(d)]||{};
+  let t = 0;
+  for (const tp of OPD_TYPES) {
+    const subs = all[tp.key]||{};
+    t += Object.values(subs).reduce((a,b)=>a+b,0) * tp.price;
+  }
+  return t;
+}
+function getOpdDayCount(d) {
+  const all = getOpdData()[dateKey(d)]||{};
+  let t = 0;
+  for (const tp of OPD_TYPES) {
+    const subs = all[tp.key]||{};
+    t += Object.values(subs).reduce((a,b)=>a+b,0);
+  }
+  return t;
+}
+// storage key: sessions → "subKey__sessionKey", no sessions → plain subKey
+function opdStorageKey(tp, subKey, sessionKey) {
+  return tp.sessions ? `${subKey}__${sessionKey}` : subKey;
+}
+function getOpdCountFull(d, typeKey, storageKey) {
+  return ((getOpdData()[dateKey(d)]||{})[typeKey]||{})[storageKey]||0;
+}
+
+// IPD
+function getIpdData() { return ls_get('ent2_ipd'); }
+function isHoliday(d) { return !!((getIpdData()[dateKey(d)]||{}).holiday); }
+function setHoliday(d, val) {
+  const all = getIpdData(); const k = dateKey(d);
+  if (!all[k]) all[k] = {};
+  all[k].holiday = val;
+  // clear conflicting counts
+  all[k].items = {};
+  ls_set('ent2_ipd', all);
+}
+function getIpdCount(d, id) { return ((getIpdData()[dateKey(d)]||{}).items||{})[id]||0; }
+function setIpdCount(d, id, val) {
+  const all = getIpdData(); const k = dateKey(d);
+  if (!all[k]) all[k] = {};
+  if (!all[k].items) all[k].items = {};
+  if (val<=0) delete all[k].items[id]; else all[k].items[id]=val;
+  ls_set('ent2_ipd', all);
+}
+function getIpdItems(d) { return isHoliday(d) ? IPD_HOLIDAY : IPD_WORKDAY; }
+function getIpdDayTotal(d) {
+  const items = getIpdItems(d);
+  return items.reduce((t,it)=>t+getIpdCount(d,it.id)*it.price, 0);
+}
+function getIpdDayCount(d) {
+  const items = getIpdItems(d);
+  return items.reduce((t,it)=>t+getIpdCount(d,it.id), 0);
+}
+
+// PROC
+function getProcData() { return ls_get('ent2_proc'); }
+function getProcCount(d, id) { return (getProcData()[dateKey(d)]||{})[id]||0; }
+function setProcCount(d, id, val) {
+  const all = getProcData(); const k = dateKey(d);
+  if (!all[k]) all[k] = {};
+  if (val<=0) delete all[k][id]; else all[k][id]=val;
+  if (!Object.keys(all[k]).length) delete all[k];
+  ls_set('ent2_proc', all);
+}
+function getProcDayTotal(d) {
+  return PROC_ITEMS.reduce((t,it)=>t+getProcCount(d,it.id)*it.price, 0);
+}
+function getProcDayCount(d) {
+  return PROC_ITEMS.reduce((t,it)=>t+getProcCount(d,it.id), 0);
+}
+
+// CONSULT
+function getConsultData() { return ls_get('ent2_consult'); }
+function getConsultList(d) { return (getConsultData()[dateKey(d)])||[]; }
+function saveConsultList(d, list) {
+  const all = getConsultData(); const k = dateKey(d);
+  if (list.length===0) delete all[k]; else all[k]=list;
+  ls_set('ent2_consult', all);
+}
+function getConsultDoneCount(d) { return getConsultList(d).filter(c=>c.done).length; }
+function getConsultDayTotal(d) { return getConsultDoneCount(d)*200; }
+function getConsultDayCount(d) { return getConsultList(d).length; }
+
+// OR
+function getOrData() { return ls_get('ent2_or'); }
+function getOrList(d) { return (getOrData()[dateKey(d)])||[]; }
+function saveOrList(d, list) {
+  const all = getOrData(); const k = dateKey(d);
+  if (list.length===0) delete all[k]; else all[k]=list;
+  ls_set('ent2_or', all);
+}
+function getOrDayTotal(d) { return getOrList(d).reduce((t,e)=>t+e.price,0); }
+function getOrDayCount(d) { return getOrList(d).length; }
+
+// Grand totals
+function getDayTotal(d) {
+  return getOpdDayTotal(d)+getIpdDayTotal(d)+getProcDayTotal(d)+getConsultDayTotal(d)+getOrDayTotal(d);
+}
+function hasAnyData(d) {
+  return getOpdDayCount(d)>0||getIpdDayCount(d)>0||getProcDayCount(d)>0||
+         getConsultDayCount(d)>0||getOrDayCount(d)>0;
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function changeMonth(dir) {
+  currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth()+dir, 1);
+  const now = new Date();
+  if (currentDate.getFullYear()===now.getFullYear() && currentDate.getMonth()===now.getMonth()) {
+    selectedDate = new Date(now);
+  } else {
+    selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  }
+  render();
+}
+function selectDate(day) {
+  selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+  if (currentView==='monthly') setView('entry');
+  else render();
+}
+function setView(v) {
+  currentView = v;
+  document.getElementById('tabEntry').classList.toggle('active', v==='entry');
+  document.getElementById('tabMonthly').classList.toggle('active', v==='monthly');
+  document.getElementById('entryView').style.display = v==='entry'?'':'none';
+  document.getElementById('monthlyView').style.display = v==='monthly'?'':'none';
+  render();
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render() {
+  renderHeader();
+  renderDateStrip();
+  renderSummaryBar();
+  if (currentView==='entry') renderEntry();
+  else renderMonthly();
+  renderBottomBar();
+}
+
+function renderHeader() {
+  const be = currentDate.getFullYear()+543;
+  document.getElementById('monthLabel').textContent = `${THAI_MONTHS[currentDate.getMonth()]} ${be}`;
+}
+
+function renderDateStrip() {
+  const strip = document.getElementById('dateStrip');
+  const y = currentDate.getFullYear(), m = currentDate.getMonth();
+  const dim = new Date(y,m+1,0).getDate();
+  const now = new Date();
+  let html = '';
+  for (let d=1; d<=dim; d++) {
+    const dt = new Date(y,m,d);
+    const sel = selectedDate.getDate()===d && selectedDate.getMonth()===m && selectedDate.getFullYear()===y;
+    const tod = now.getDate()===d && now.getMonth()===m && now.getFullYear()===y;
+    const hd = hasAnyData(dt);
+    const we = dt.getDay()===0||dt.getDay()===6;
+    html += `<button class="date-btn${sel?' active':''}${hd?' has-data':''}${tod?' today-mark':''}${we?' weekend':''}" onclick="selectDate(${d})">
+      <span class="dd">${THAI_DAYS[dt.getDay()]}</span>
+      <span class="dn">${d}</span>
+    </button>`;
+  }
+  strip.innerHTML = html;
+  setTimeout(()=>{ const a=strip.querySelector('.active'); if(a) a.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'}); },50);
+}
+
+function renderSummaryBar() {
+  const bar = document.getElementById('summaryBar');
+  const dayT = getDayTotal(selectedDate);
+  const y = currentDate.getFullYear(), m = currentDate.getMonth();
+  const dim = new Date(y,m+1,0).getDate();
+  let mT = 0;
+  for (let d=1;d<=dim;d++) mT += getDayTotal(new Date(y,m,d));
+  const opdCnt = getOpdDayCount(selectedDate);
+  const ipdCnt = getIpdDayCount(selectedDate);
+  const procCnt = getProcDayCount(selectedDate);
+  const consultCnt = getConsultDayCount(selectedDate);
+  const orCnt = getOrDayCount(selectedDate);
+  bar.innerHTML = `
+    <div class="sum-item hl"><div class="sum-val">${opdCnt}</div><div class="sum-lbl">OPD</div></div>
+    <div class="sum-item"><div class="sum-val">${ipdCnt}</div><div class="sum-lbl">IPD</div></div>
+    <div class="sum-item"><div class="sum-val">${procCnt}</div><div class="sum-lbl">หัตถการ</div></div>
+    <div class="sum-item"><div class="sum-val">${consultCnt}</div><div class="sum-lbl">Consult</div></div>
+    <div class="sum-item"><div class="sum-val">${orCnt}</div><div class="sum-lbl">OR</div></div>
+    <div class="sum-item hl"><div class="sum-val gold">${fmt(mT)}</div><div class="sum-lbl">฿เดือน</div></div>
+  `;
+}
+
+function renderEntry() {
+  const view = document.getElementById('entryView');
+  view.innerHTML = renderOpdSection() + renderProcSection() + renderIpdSection() + renderConsultSection() + renderOrSection();
+}
+
+// ── OPD ──
+function renderOpdSection() {
+  const collapsed = collapsedSections.opd;
+  let secTotal = 0;
+  for (const tp of OPD_TYPES) {
+    const all = getOpdData()[dateKey(selectedDate)]||{};
+    secTotal += Object.values(all[tp.key]||{}).reduce((a,b)=>a+b,0) * tp.price;
+  }
+  let body = '';
+  for (const tp of OPD_TYPES) {
+    const tierCollapsed = collapsedOpdTiers[tp.key];
+    // tier total
+    const all = getOpdData()[dateKey(selectedDate)]||{};
+    const tierCnt = Object.values(all[tp.key]||{}).reduce((a,b)=>a+b,0);
+    const tierTotal = tierCnt * tp.price;
+
+    body += `<div id="opd_tier_${tp.key}">
+      <div onclick="toggleOpdTier('${tp.key}')" style="padding:9px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;background:${tp.bg};border-bottom:1px solid var(--border)">
+        <span style="background:${tp.color};color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${tp.label}</span>
+        <span style="font-size:11px;color:${tp.color};margin-left:2px">${fmt(tp.price)}฿/เคส</span>
+        <span style="flex:1"></span>
+        ${tierTotal>0?`<span style="font-size:12px;font-weight:700;color:${tp.color}">${fmt(tierTotal)}฿</span>`:''}
+        <span style="font-size:11px;color:var(--text-muted)">${tierCollapsed?'▶':'▼'}</span>
+      </div>`;
+
+    if (!tierCollapsed) {
+      if (tp.sessions) {
+        // แยก เช้า/บ่าย
+        for (const sess of OPD_SESSIONS) {
+          body += `<div style="padding:5px 14px 3px;background:#fafbfc;border-bottom:1px solid var(--bg)">
+            <span style="font-size:11px;font-weight:700;color:var(--text-muted)">${sess.label}</span>
+          </div>`;
+          for (const sub of OPD_SUBS) {
+            const sk = opdStorageKey(tp, sub.key, sess.key);
+            const cnt = getOpdCountFull(selectedDate, tp.key, sk);
+            body += `<div class="item-row" style="padding-left:20px">
+              <div class="item-info"><div class="item-name">${sub.label}</div></div>
+              <div class="counter">
+                <button class="cbtn minus" onclick="adjOpdFull('${tp.key}','${sk}',-1)">−</button>
+                <div class="cval${cnt>0?' nz':''}" id="opd_${tp.key}_${sk}">${cnt}</div>
+                <button class="cbtn" onclick="adjOpdFull('${tp.key}','${sk}',1)">+</button>
+              </div>
+              <div class="item-sub" id="osub_${tp.key}_${sk}">${cnt>0?fmt(cnt*tp.price)+'฿':''}</div>
+            </div>`;
+          }
+        }
+      } else {
+        // OPD นอกเวลา — ไม่มี session
+        for (const sub of OPD_SUBS) {
+          const sk = sub.key;
+          const cnt = getOpdCountFull(selectedDate, tp.key, sk);
+          body += `<div class="item-row">
+            <div class="item-info"><div class="item-name">${sub.label}</div><div class="item-price-lbl">${fmt(tp.price)} ฿/เคส</div></div>
+            <div class="counter">
+              <button class="cbtn minus" onclick="adjOpdFull('${tp.key}','${sk}',-1)">−</button>
+              <div class="cval${cnt>0?' nz':''}" id="opd_${tp.key}_${sk}">${cnt}</div>
+              <button class="cbtn" onclick="adjOpdFull('${tp.key}','${sk}',1)">+</button>
+            </div>
+            <div class="item-sub" id="osub_${tp.key}_${sk}">${cnt>0?fmt(cnt*tp.price)+'฿':''}</div>
+          </div>`;
+        }
+      }
+    }
+    body += `</div>`;
+  }
+  return `<div class="section-card${collapsed?' collapsed':''}" id="sec_opd">
+    <div class="section-header" onclick="toggleSec('opd')">
+      <div class="sec-dot" style="background:var(--opd)"></div>
+      <div class="sec-name">1. OPD</div>
+      <div class="sec-total" id="sectot_opd">${secTotal>0?fmt(secTotal)+'฿':''}</div>
+      <div class="sec-chev">▼</div>
+    </div>
+    <div class="section-body">${body}</div>
+  </div>`;
+}
+
+// ── PROC ──
+function renderProcSection() {
+  const collapsed = collapsedSections.proc;
+  let secTotal = 0;
+  for (const it of PROC_ITEMS) secTotal += getProcCount(selectedDate,it.id)*it.price;
+  let body = '';
+  for (const it of PROC_ITEMS) {
+    const cnt = getProcCount(selectedDate,it.id);
+    body += `<div class="item-row">
+      <div class="item-info">
+        <div class="item-name">${it.name}</div>
+        <div class="item-price-lbl">${fmt(it.price)} ฿/ครั้ง</div>
+      </div>
+      <div class="counter">
+        <button class="cbtn minus" onclick="adjProc('${it.id}',-1)">−</button>
+        <div class="cval${cnt>0?' nz':''}" id="proc_${it.id}">${cnt}</div>
+        <button class="cbtn" onclick="adjProc('${it.id}',1)">+</button>
+      </div>
+      <div class="item-sub" id="psub_${it.id}">${cnt>0?fmt(cnt*it.price)+'฿':''}</div>
+    </div>`;
+  }
+  return `<div class="section-card${collapsed?' collapsed':''}" id="sec_proc">
+    <div class="section-header" onclick="toggleSec('proc')">
+      <div class="sec-dot" style="background:var(--proc)"></div>
+      <div class="sec-name">2. หัตถการ OPD</div>
+      <div class="sec-total" id="sectot_proc">${secTotal>0?fmt(secTotal)+'฿':''}</div>
+      <div class="sec-chev">▼</div>
+    </div>
+    <div class="section-body">${body}</div>
+  </div>`;
+}
+
+// ── IPD ──
+function renderIpdSection() {
+  const collapsed = collapsedSections.ipd;
+  const hol = isHoliday(selectedDate);
+  const items = getIpdItems(selectedDate);
+  let secTotal = getIpdDayTotal(selectedDate);
+  let body = `<div class="ipd-day-toggle">
+    <button class="ipd-toggle-btn${!hol?' active':''}" onclick="setHolidayMode(false)">📋 วันทำการ</button>
+    <button class="ipd-toggle-btn${hol?' active':''}" onclick="setHolidayMode(true)">🎌 วันหยุด / นักขัตฤกษ์</button>
+  </div>`;
+  for (const it of items) {
+    const cnt = getIpdCount(selectedDate, it.id);
+    body += `<div class="item-row">
+      <div class="item-info">
+        <div class="item-name">${it.name}</div>
+        <div class="item-price-lbl">${fmt(it.price)} ฿/ครั้ง</div>
+      </div>
+      <div class="counter">
+        <button class="cbtn minus" onclick="adjIpd('${it.id}',-1)">−</button>
+        <div class="cval${cnt>0?' nz':''}" id="ipd_${it.id}">${cnt}</div>
+        <button class="cbtn" onclick="adjIpd('${it.id}',1)">+</button>
+      </div>
+      <div class="item-sub" id="isub_${it.id}">${cnt>0?fmt(cnt*it.price)+'฿':''}</div>
+    </div>`;
+  }
+  return `<div class="section-card${collapsed?' collapsed':''}" id="sec_ipd">
+    <div class="section-header" onclick="toggleSec('ipd')">
+      <div class="sec-dot" style="background:var(--ipd)"></div>
+      <div class="sec-name">3. IPD${hol?' 🎌':''}</div>
+      <div class="sec-total" id="sectot_ipd">${secTotal>0?fmt(secTotal)+'฿':''}</div>
+      <div class="sec-chev">▼</div>
+    </div>
+    <div class="section-body">${body}</div>
+  </div>`;
+}
+
+// ── CONSULT ──
+function renderConsultSection() {
+  const collapsed = collapsedSections.consult;
+  const list = getConsultList(selectedDate);
+  const done = list.filter(c=>c.done).length;
+  const total = done*200;
+  let items = '';
+  for (const c of list) {
+    items += `<div class="consult-item">
+      <div class="consult-check${c.done?' done':''}" onclick="toggleConsult('${c.id}')">${c.done?'✓':''}</div>
+      <div style="flex:1;min-width:0">
+        <div class="consult-text${c.done?' done':''}">${c.text}</div>
+        ${c.ward?`<div style="font-size:11px;color:var(--text-muted);margin-top:1px">🏥 ${c.ward}</div>`:''}
+      </div>
+      <button class="consult-del" onclick="deleteConsult('${c.id}')">✕</button>
+    </div>`;
+  }
+  const body = `<div class="consult-note-area">
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
+      <div style="display:flex;gap:6px">
+        <input class="consult-input" id="consultInput" placeholder="ชื่อเคส / dx..." onkeydown="if(event.key==='Enter')addConsult()" style="flex:1">
+        <input class="consult-input" id="consultWard" placeholder="Ward" onkeydown="if(event.key==='Enter')addConsult()" style="width:80px;flex:none">
+      </div>
+      <button class="consult-add-btn" onclick="addConsult()" style="align-self:flex-end">+ เพิ่มเคส</button>
+    </div>
+    <div class="consult-list">${items}</div>
+    ${list.length>0?`<div class="consult-df-row">
+      <span class="consult-df-lbl">DF (${done} เคสที่ดูแล้ว × 200฿)</span>
+      <span class="consult-df-val">${fmt(total)}฿</span>
+    </div>`:''}
+  </div>`;
+  return `<div class="section-card${collapsed?' collapsed':''}" id="sec_consult">
+    <div class="section-header" onclick="toggleSec('consult')">
+      <div class="sec-dot" style="background:var(--consult)"></div>
+      <div class="sec-name">4. เวร Consult</div>
+      <div class="sec-total" id="sectot_consult">${total>0?fmt(total)+'฿':''}</div>
+      <div class="sec-chev">▼</div>
+    </div>
+    <div class="section-body">${body}</div>
+  </div>`;
+}
+
+// ── OR ──
+function renderOrSection() {
+  const collapsed = collapsedSections.or;
+  const list = getOrList(selectedDate);
+  const total = getOrDayTotal(selectedDate);
+
+  // Preset buttons
+  let presets = '<div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px 6px;">';
+  for (const p of OR_PRESETS) {
+    presets += `<button onclick="addOrPreset('${p.id}')" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;">${p.name}<span style="color:var(--text-muted);margin-left:4px">${p.price?fmt(p.price)+'฿':''}</span></button>`;
+  }
+  presets += '</div>';
+
+  // Manual add
+  let manual = `<div style="padding:0 14px 10px;border-bottom:1px solid var(--border)">
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">เพิ่ม operation เอง</div>
+    <div class="or-add-row">
+      <input class="or-add-name" id="orManualName" placeholder="ชื่อ operation">
+      <input class="or-price-input" id="orManualPrice" type="number" placeholder="DF ฿" style="width:90px">
+      <button class="or-add-btn" onclick="addOrManual()">+ เพิ่ม</button>
+    </div>
+  </div>`;
+
+  // Entry list
+  let entries = '';
+  for (const e of list) {
+    entries += `<div class="or-entry">
+      <div class="or-entry-name">${e.name}</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" value="${e.price}" style="width:75px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:12px;color:var(--primary);font-weight:700;background:#fff" onchange="updateOrPrice('${e.id}',this.value)">
+        <span style="font-size:11px;color:var(--text-muted)">฿</span>
+      </div>
+      <button class="or-entry-del" onclick="deleteOrEntry('${e.id}')">✕</button>
+    </div>`;
+  }
+  const entriesHtml = list.length>0
+    ? `<div style="padding:8px 14px 10px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">รายการวันนี้ (แก้ไขราคาได้)</div>
+        ${entries}
+        <div style="text-align:right;font-size:14px;font-weight:800;color:var(--or);margin-top:8px">รวม OR: ${fmt(total)}฿</div>
+       </div>`
+    : '<div style="padding:10px 14px;font-size:12px;color:var(--text-muted)">ยังไม่มีรายการ OR</div>';
+
+  return `<div class="section-card${collapsed?' collapsed':''}" id="sec_or">
+    <div class="section-header" onclick="toggleSec('or')">
+      <div class="sec-dot" style="background:var(--or)"></div>
+      <div class="sec-name">5. ห้องผ่าตัด (OR)</div>
+      <div class="sec-total" id="sectot_or">${total>0?fmt(total)+'฿':''}</div>
+      <div class="sec-chev">▼</div>
+    </div>
+    <div class="section-body">
+      ${presets}${manual}${entriesHtml}
+    </div>
+  </div>`;
+}
+
+// ─── ACTIONS ──────────────────────────────────────────────────────────────────
+function toggleOpdTier(tpKey) {
+  collapsedOpdTiers[tpKey] = !collapsedOpdTiers[tpKey];
+  // re-render just OPD section to avoid scroll jump
+  const card = document.getElementById('sec_opd');
+  const wasCollapsed = card.classList.contains('collapsed');
+  card.outerHTML = renderOpdSection();
+  if (wasCollapsed) document.getElementById('sec_opd').classList.add('collapsed');
+}
+
+function adjOpdFull(typeKey, storageKey, delta) {
+  const cur = getOpdCountFull(selectedDate, typeKey, storageKey);
+  const nv = Math.max(0, cur+delta);
+  // use setOpdCount with storageKey directly
+  const all = getOpdData(); const k = dateKey(selectedDate);
+  if (!all[k]) all[k] = {};
+  if (!all[k][typeKey]) all[k][typeKey] = {};
+  if (nv<=0) delete all[k][typeKey][storageKey]; else all[k][typeKey][storageKey]=nv;
+  if (!Object.keys(all[k][typeKey]).length) delete all[k][typeKey];
+  if (!Object.keys(all[k]).length) delete all[k];
+  ls_set('ent2_opd', all);
+  const tp = OPD_TYPES.find(t=>t.key===typeKey);
+  const el = document.getElementById(`opd_${typeKey}_${storageKey}`);
+  const sel = document.getElementById(`osub_${typeKey}_${storageKey}`);
+  if (el) { el.textContent=nv; el.className=`cval${nv>0?' nz':''}`; }
+  if (sel) sel.textContent = nv>0?fmt(nv*tp.price)+'฿':'';
+  refreshSummary();
+}
+
+// keep old adjOpd for backward compat (not used in new render but safe to keep)
+function adjOpd(typeKey, subKey, delta) {
+  adjOpdFull(typeKey, subKey, delta);
+}
+
+function adjProc(id, delta) {
+  const cur = getProcCount(selectedDate, id);
+  const nv = Math.max(0, cur+delta);
+  setProcCount(selectedDate, id, nv);
+  const it = PROC_ITEMS.find(i=>i.id===id);
+  document.getElementById(`proc_${id}`).textContent = nv;
+  document.getElementById(`proc_${id}`).className = `cval${nv>0?' nz':''}`;
+  document.getElementById(`psub_${id}`).textContent = nv>0?fmt(nv*it.price)+'฿':'';
+  refreshSummary();
+}
+
+function adjIpd(id, delta) {
+  const cur = getIpdCount(selectedDate, id);
+  const nv = Math.max(0, cur+delta);
+  setIpdCount(selectedDate, id, nv);
+  const it = getIpdItems(selectedDate).find(i=>i.id===id);
+  document.getElementById(`ipd_${id}`).textContent = nv;
+  document.getElementById(`ipd_${id}`).className = `cval${nv>0?' nz':''}`;
+  document.getElementById(`isub_${id}`).textContent = nv>0?fmt(nv*it.price)+'฿':'';
+  refreshSummary();
+}
+
+function setHolidayMode(hol) {
+  setHoliday(selectedDate, hol);
+  // re-render IPD section only
+  const card = document.getElementById('sec_ipd');
+  const wasCollapsed = card.classList.contains('collapsed');
+  card.outerHTML = renderIpdSection();
+  if (wasCollapsed) document.getElementById('sec_ipd').classList.add('collapsed');
+  refreshSummary();
+}
+
+function addConsult() {
+  const inp = document.getElementById('consultInput');
+  const wardEl = document.getElementById('consultWard');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  const ward = wardEl ? wardEl.value.trim() : '';
+  const list = getConsultList(selectedDate);
+  list.push({ id: Date.now().toString(), text: txt, ward: ward, done: false });
+  saveConsultList(selectedDate, list);
+  inp.value = '';
+  if (wardEl) wardEl.value = '';
+  rerenderConsult();
+  refreshSummary();
+}
+
+function toggleConsult(id) {
+  const list = getConsultList(selectedDate);
+  const item = list.find(c=>c.id===id);
+  if (item) item.done = !item.done;
+  saveConsultList(selectedDate, list);
+  rerenderConsult();
+  refreshSummary();
+}
+
+function deleteConsult(id) {
+  const list = getConsultList(selectedDate).filter(c=>c.id!==id);
+  saveConsultList(selectedDate, list);
+  rerenderConsult();
+  refreshSummary();
+}
+
+function rerenderConsult() {
+  const card = document.getElementById('sec_consult');
+  const collapsed = card.classList.contains('collapsed');
+  card.outerHTML = renderConsultSection();
+  if (collapsed) document.getElementById('sec_consult').classList.add('collapsed');
+}
+
+function addOrPreset(presetId) {
+  const p = OR_PRESETS.find(x=>x.id===presetId);
+  if (!p) return;
+  let name = p.name;
+  if (presetId === 'or_excision') {
+    const loc = prompt('ระบุตำแหน่ง Excision / Bx:', '');
+    if (loc === null) return; // กด cancel
+    if (loc.trim()) name = `Excision / Bx — ${loc.trim()}`;
+  }
+  const list = getOrList(selectedDate);
+  list.push({ id: Date.now().toString(), name, price: p.price });
+  saveOrList(selectedDate, list);
+  rerenderOr();
+  refreshSummary();
+  showToast(`เพิ่ม ${name} ✓`);
+}
+
+function addOrManual() {
+  const name = document.getElementById('orManualName').value.trim();
+  const price = parseInt(document.getElementById('orManualPrice').value)||0;
+  if (!name) return;
+  const list = getOrList(selectedDate);
+  list.push({ id: Date.now().toString(), name, price });
+  saveOrList(selectedDate, list);
+  document.getElementById('orManualName').value = '';
+  document.getElementById('orManualPrice').value = '';
+  rerenderOr();
+  refreshSummary();
+  showToast(`เพิ่ม ${name} ✓`);
+}
+
+function updateOrPrice(id, val) {
+  const list = getOrList(selectedDate);
+  const entry = list.find(e=>e.id===id);
+  if (entry) entry.price = parseInt(val)||0;
+  saveOrList(selectedDate, list);
+  // Update total display only
+  const total = getOrDayTotal(selectedDate);
+  const el = document.getElementById('sectot_or');
+  if (el) el.textContent = total>0?fmt(total)+'฿':'';
+  refreshSummary();
+}
+
+function deleteOrEntry(id) {
+  const list = getOrList(selectedDate).filter(e=>e.id!==id);
+  saveOrList(selectedDate, list);
+  rerenderOr();
+  refreshSummary();
+}
+
+function rerenderOr() {
+  const card = document.getElementById('sec_or');
+  const collapsed = card.classList.contains('collapsed');
+  card.outerHTML = renderOrSection();
+  if (collapsed) document.getElementById('sec_or').classList.add('collapsed');
+}
+
+function toggleSec(key) {
+  collapsedSections[key] = !collapsedSections[key];
+  document.getElementById(`sec_${key}`).classList.toggle('collapsed', collapsedSections[key]);
+}
+
+function refreshSummary() {
+  renderSummaryBar();
+  renderBottomBar();
+  renderDateStrip();
+  // Update section totals
+  const opdT = getOpdDayTotal(selectedDate);
+  const procT = getProcDayTotal(selectedDate);
+  const ipdT = getIpdDayTotal(selectedDate);
+  const consultT = getConsultDayTotal(selectedDate);
+  const orT = getOrDayTotal(selectedDate);
+  const upd = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v>0?fmt(v)+'฿':''; };
+  upd('sectot_opd', opdT);
+  upd('sectot_proc', procT);
+  upd('sectot_ipd', ipdT);
+  upd('sectot_consult', consultT);
+  upd('sectot_or', orT);
+}
+
+function renderBottomBar() {
+  const total = getDayTotal(selectedDate);
+  const d = selectedDate;
+  const be = d.getFullYear()+543;
+  document.getElementById('biDate').textContent = `${THAI_DAYS[d.getDay()]} ${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${be}`;
+  const opdC = getOpdDayCount(d), ipdC = getIpdDayCount(d), procC = getProcDayCount(d);
+  const consultC = getConsultDayCount(d), orC = getOrDayCount(d);
+  document.getElementById('biCases').textContent = `OPD ${opdC} · IPD ${ipdC} · หัตถการ ${procC} · Consult ${consultC} · OR ${orC}`;
+  document.getElementById('biTotal').textContent = '฿'+fmt(total);
+}
+
+// ─── MONTHLY ──────────────────────────────────────────────────────────────────
+function renderMonthly() {
+  const view = document.getElementById('monthlyView');
+  const y = currentDate.getFullYear(), m = currentDate.getMonth();
+  const dim = new Date(y,m+1,0).getDate();
+  const be = y+543;
+
+  let grandTotal = 0, opdTotal = 0, ipdTotal = 0, procTotal = 0, consultTotal = 0, orTotal = 0;
+  for (let d=1; d<=dim; d++) {
+    const dt = new Date(y,m,d);
+    opdTotal += getOpdDayTotal(dt);
+    ipdTotal += getIpdDayTotal(dt);
+    procTotal += getProcDayTotal(dt);
+    consultTotal += getConsultDayTotal(dt);
+    orTotal += getOrDayTotal(dt);
+    grandTotal += getDayTotal(dt);
+  }
+
+  const SALARY = 33242;
+  const netDF = grandTotal - SALARY;
+
+  let html = `<div class="monthly-header">
+    <div class="monthly-title">สรุป ${THAI_MONTHS[m]} ${be}</div>
+    <button class="export-btn" onclick="exportCSV()">📥 Export CSV</button>
+  </div>
+
+  <div class="bt" style="margin-bottom:10px">
+    <div style="padding:14px 16px;background:var(--primary);border-radius:var(--radius) var(--radius) 0 0">
+      <div style="color:rgba(255,255,255,0.7);font-size:11px;margin-bottom:2px">รวม DF ทั้งเดือน</div>
+      <div style="color:#fff;font-size:26px;font-weight:800">${fmt(grandTotal)} ฿</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border)">
+      <div style="padding:12px 14px;border-right:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">หักเงินเดือน</div>
+        <div style="font-size:15px;font-weight:700;color:var(--red)">− ${fmt(SALARY)} ฿</div>
+      </div>
+      <div style="padding:12px 14px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">คงเหลือสุทธิ</div>
+        <div style="font-size:17px;font-weight:800;color:${netDF>=0?'var(--primary)':'var(--red)'}">
+          ${netDF>=0?'+':''}${fmt(netDF)} ฿
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="msummary">
+    <div class="mscard"><div class="mscard-val gold">${fmt(opdTotal)}</div><div class="mscard-lbl">OPD (฿)</div></div>
+    <div class="mscard"><div class="mscard-val">${fmt(ipdTotal)}</div><div class="mscard-lbl">IPD (฿)</div></div>
+    <div class="mscard"><div class="mscard-val">${fmt(procTotal)}</div><div class="mscard-lbl">หัตถการ (฿)</div></div>
+    <div class="mscard"><div class="mscard-val">${fmt(consultTotal)}</div><div class="mscard-lbl">Consult (฿)</div></div>
+    <div class="mscard"><div class="mscard-val">${fmt(orTotal)}</div><div class="mscard-lbl">OR (฿)</div></div>
+  </div>`;
+
+  // OPD Breakdown
+  html += `<div class="bt"><div class="bt-head"><span>OPD</span><span style="text-align:center">จำนวน</span><span style="text-align:right">ยอดเงิน</span></div>`;
+  for (const tp of OPD_TYPES) {
+    // tpCnt = sum all storage keys under this tier
+    let tpTotal = 0, tpCnt = 0;
+    for (let d=1;d<=dim;d++) {
+      const all = getOpdData()[dateKey(new Date(y,m,d))]||{};
+      const subs = all[tp.key]||{};
+      const c = Object.values(subs).reduce((a,b)=>a+b,0);
+      tpCnt += c; tpTotal += c*tp.price;
+    }
+    if (tpCnt===0) continue;
+    html += `<div class="bt-row bt-sec"><span>${tp.label} (${fmt(tp.price)}฿)</span><span class="bt-cnt">${tpCnt}</span><span class="bt-amt">${fmt(tpTotal)}</span></div>`;
+    if (tp.sessions) {
+      for (const sess of OPD_SESSIONS) {
+        for (const sub of OPD_SUBS) {
+          const sk = opdStorageKey(tp, sub.key, sess.key);
+          let sCnt=0;
+          for (let d=1;d<=dim;d++) sCnt+=getOpdCountFull(new Date(y,m,d),tp.key,sk);
+          if (!sCnt) continue;
+          html += `<div class="bt-row"><span style="padding-left:10px">${sess.label} ${sub.label}</span><span class="bt-cnt">${sCnt}</span><span class="bt-amt">${fmt(sCnt*tp.price)}</span></div>`;
+        }
+      }
+    } else {
+      for (const sub of OPD_SUBS) {
+        let sCnt=0;
+        for (let d=1;d<=dim;d++) sCnt+=getOpdCountFull(new Date(y,m,d),tp.key,sub.key);
+        if (!sCnt) continue;
+        html += `<div class="bt-row"><span style="padding-left:10px">${sub.label}</span><span class="bt-cnt">${sCnt}</span><span class="bt-amt">${fmt(sCnt*tp.price)}</span></div>`;
+      }
+    }
+  }
+  html += `</div>`;
+
+  // Proc Breakdown
+  html += `<div class="bt"><div class="bt-head"><span>หัตถการ</span><span style="text-align:center">จำนวน</span><span style="text-align:right">ยอดเงิน</span></div>`;
+  for (const it of PROC_ITEMS) {
+    let cnt=0;
+    for (let d=1;d<=dim;d++) cnt+=getProcCount(new Date(y,m,d),it.id);
+    if (!cnt) continue;
+    html += `<div class="bt-row"><span>${it.name}</span><span class="bt-cnt">${cnt}</span><span class="bt-amt">${fmt(cnt*it.price)}</span></div>`;
+  }
+  if (!procTotal) html += `<div style="padding:10px 12px;font-size:12px;color:var(--text-muted)">ไม่มีข้อมูล</div>`;
+  html += `</div>`;
+
+  // Daily summary
+  html += `<div class="bt"><div class="bt-head"><span>รายวัน</span><span style="text-align:center">รายการ</span><span style="text-align:right">ยอดเงิน</span></div>`;
+  for (let d=1;d<=dim;d++) {
+    const dt=new Date(y,m,d);
+    const t=getDayTotal(dt);
+    if (!t) continue;
+    const cnt=getOpdDayCount(dt)+getIpdDayCount(dt)+getProcDayCount(dt)+getConsultDayCount(dt)+getOrDayCount(dt);
+    html += `<div class="bt-row" onclick="selectDate(${d})" style="cursor:pointer">
+      <span>${d} ${THAI_MONTHS[m].slice(0,3)} (${THAI_DAYS[dt.getDay()]})</span>
+      <span class="bt-cnt">${cnt}</span>
+      <span class="bt-amt">${fmt(t)}</span>
+    </div>`;
+  }
+  html += `<div class="bt-row bt-tot"><span>รวมทั้งเดือน</span><span></span><span class="bt-amt">${fmt(grandTotal)}</span></div>`;
+  html += `</div>`;
+  view.innerHTML = html;
+}
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const y = currentDate.getFullYear(), m = currentDate.getMonth();
+  const dim = new Date(y,m+1,0).getDate();
+  const be = y+543;
+  let rows = [`การปฏิบัติงาน เดือน ${THAI_MONTHS[m]} ${be}`,''];
+
+  // OPD
+  rows.push('=== OPD ===');
+  rows.push(['รายการ','ราคา',...Array.from({length:dim},(_,i)=>i+1),'รวม','ยอดเงิน'].join(','));
+  for (const tp of OPD_TYPES) {
+    for (const sub of OPD_SUBS) {
+      let total=0;
+      const vals = [];
+      for (let d=1;d<=dim;d++) {
+        const c=getOpdCount(new Date(y,m,d),tp.key,sub.key);
+        total+=c; vals.push(c||'');
+      }
+      if (!total) continue;
+      rows.push([`"${tp.label} - ${sub.label}"`,tp.price,...vals,total,total*tp.price].join(','));
+    }
+  }
+
+  // Proc
+  rows.push('','=== หัตถการ ===');
+  rows.push(['รายการ','ราคา',...Array.from({length:dim},(_,i)=>i+1),'รวม','ยอดเงิน'].join(','));
+  for (const it of PROC_ITEMS) {
+    let total=0;
+    const vals=[];
+    for (let d=1;d<=dim;d++) {
+      const c=getProcCount(new Date(y,m,d),it.id);
+      total+=c; vals.push(c||'');
+    }
+    if (!total) continue;
+    rows.push([`"${it.name}"`,it.price,...vals,total,total*it.price].join(','));
+  }
+
+  // IPD
+  rows.push('','=== IPD ===');
+  for (let d=1;d<=dim;d++) {
+    const dt=new Date(y,m,d);
+    const t=getIpdDayTotal(dt);
+    if (!t) continue;
+    const hol=isHoliday(dt);
+    const items=getIpdItems(dt);
+    for (const it of items) {
+      const c=getIpdCount(dt,it.id);
+      if (!c) continue;
+      rows.push([`${d}/${m+1},"${it.name}${hol?' (วันหยุด)':''}",${it.price},${c},${c*it.price}`]);
+    }
+  }
+
+  // Consult
+  rows.push('','=== Consult ===');
+  for (let d=1;d<=dim;d++) {
+    const dt=new Date(y,m,d);
+    const list=getConsultList(dt);
+    const done=list.filter(c=>c.done);
+    if (!done.length) continue;
+    rows.push([`${d}/${m+1},"Consult (${done.length} เคส)",200,${done.length},${done.length*200}`]);
+  }
+
+  // OR
+  rows.push('','=== OR ===');
+  for (let d=1;d<=dim;d++) {
+    const dt=new Date(y,m,d);
+    for (const e of getOrList(dt)) {
+      rows.push([`${d}/${m+1},"${e.name}",${e.price},1,${e.price}`]);
+    }
+  }
+
+  // Grand total
+  let grandTotal=0;
+  for (let d=1;d<=dim;d++) grandTotal+=getDayTotal(new Date(y,m,d));
+  rows.push('',`รวม DF ทั้งเดือน,,,,,${grandTotal}`);
+
+  const csv = rows.join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`ENT_DF_${THAI_MONTHS[m]}_${be}.csv`; a.click();
+  showToast('Export สำเร็จ ✓');
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function fmt(n) { return n>=1000?n.toLocaleString('th-TH'):String(n); }
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+const now = new Date();
+currentDate = new Date(now.getFullYear(), now.getMonth(), 1);
+selectedDate = new Date(now);
+render();
+</script>
+</body>
+</html>
